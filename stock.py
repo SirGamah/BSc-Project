@@ -1,15 +1,15 @@
 # Import various libraries
-from datetime import date
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
+from datetime import date # for manipulating dates
+import streamlit as st # Python library for building web application
+import pandas as pd # for data manipulation
+import matplotlib.pyplot as plt # for data analysis and visualization
 
-import yfinance as yf
-from prophet import Prophet
-from prophet.plot import plot_plotly, plot_components_plotly
-from plotly import graph_objs as go
+import yfinance as yf # for pulling historical stock data from Yahoo! Finance
+from prophet import Prophet # ML algorithm for data forecating
+from prophet.plot import plot_plotly, plot_components_plotly # for creating interactive visualizations
+from plotly import graph_objs as go # for creating interactive visualizations
 
-#-----------SETTINGS-------------------#
+#-----------Web page setting-------------------#
 page_title = "Stock Price Prediction System"
 page_icon = "📈"
 viz_icon = "📊"
@@ -21,16 +21,17 @@ picker_icon = "👇"
 data_icon = "📑"
 layout = "centered"
 
-# Page configuration
+#--------------------Page configuration------------------#
 st.set_page_config(page_title = page_title, page_icon = page_icon, layout = layout)
 
-# App Design
-st.title(page_title + " " + page_icon) # Set Stocks under consideration
+#--------------------Web App Design----------------------#
+st.title(page_title + " " + page_icon) 
 
 # Set tabs
-tab1, tab2, tab3 = st.tabs(["Available Stocks", "Get Prediction", "About Web App"])
+tab1, tab2, tab3, tab4 = st.tabs(["Available Stocks", "Stock Analysis", "Get Prediction", "About Web App"])
+
+# Available stocks tab
 with tab1:
-    #st.header("Available Stocks " + stock_icon)
     st.subheader("These are the available stock exchange companies to choose for the prediction.")
     st.write("1. AngloGold Ashanti Limited - AU")
     st.write("2. MTN Group Limited - MTNOY")
@@ -38,10 +39,11 @@ with tab1:
     st.write("4. Unilever PLC - UL")
     st.write("5. Airtel Africa PLC - AAF.L")
 
+# Tab for pulling historical stock data
 with tab2:
     # Getting user inputs
     stocks = ("AAPL","AU", "MTNOY", "VOD", "UL", "AAF.L") # Set stock symbols
-    selected_stock = st.selectbox("Select stock for prediction " + picker_icon, stocks) # Set user input for stock symbols
+    selected_stock = st.selectbox("Select stock symbol " + picker_icon, stocks) # Set user input for stock symbols
 
     if selected_stock:
         min_date = date(2000, 1, 1) # Set minimum date to be selected by user
@@ -51,27 +53,25 @@ with tab2:
         start = start.strftime("%Y-%m-%d") # Change date format to required format for yfinance library
 
         end = date.today().strftime("%Y-%m-%d") # Set end date for data retrieval to today
-
-        # Set years for prediction input
-        n_years = st.slider("Pick number of year(s) for prediction " + picker_icon, 1, 5)
-        period = n_years * 365
-
         if start:
             # Data retrieval
-            @st.cache_data
+            @st.cache_data # Cache the retrieved data to enhance app speed and performance
+            
+            # Define a load_data function to retreive historical stock data
             def load_data(ticker, start):
-                data = yf.download(ticker, start, end)
-                data.reset_index(inplace = True)
+                data = yf.download(ticker, start, end) # get data from Yahoo! Fincane using selected stock symbol, and picked date
+                data.reset_index(inplace = True) # reset the index of the retreived data 
                 return data
 
-            data = load_data(selected_stock, start)
+            data = load_data(selected_stock, start) # Load the retreived data
 
             # Show data
             st.subheader("Raw Stock Historical Data " + data_icon)
-            st.write(data.head())
-            st.write(data.tail())
+            st.write(data.head()) # Show first 5 days of the stock data
+            st.write(data.tail()) # Show last 5 days of the stock data
 
             # Visualization
+            # Define a plot_raw_data function to plot a Time Series Analysis of the Opening and Closing stock price
             def plot_raw_data():
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(x = data['Date'], y = data['Open'], name = "stock_open", line=dict(color='green')))
@@ -80,9 +80,10 @@ with tab2:
                 st.plotly_chart(fig)
 
             st.subheader("Time Series Analysis " + pred_icon)
-            plot_raw_data()
+            plot_raw_data() # Show plot
 
             # Plot Candle Stick Analysis
+            # Define a plot_candle function to show candle sticks analysis of the last 30 days of the stock data
             def plot_candle():
                 last_30_days_data = data.iloc[-30:]
                 trace1 = {
@@ -98,6 +99,7 @@ with tab2:
                 }
 
                 df = [trace1]
+                
                 # Configure graph layout
                 layout = go.Layout({
                     'title': {
@@ -115,33 +117,36 @@ with tab2:
             st.subheader("Last 30 Days Candle Stick Analysis " + viz_icon)
             plot_candle() # Plot clandle Analysis
 
-            # Stock Forecasting
-            df_train = data[['Date', 'Close']] # Select columns from raw data for prediction
-            df_train = df_train.rename(columns = {"Date": "ds", "Close": "y"}) # Convert columns for Prophet to understand
-
-            # Make prediction
-            model = Prophet() # Initialize model
-            model.fit(df_train) # Fit model on training data
-            future = model.make_future_dataframe(periods = period) # Make future prediction
-            forecast = model.predict(future)
-
-            # Show forecast data
-            st.subheader("Forecast data " + data_icon)
-            st.write(forecast.tail())
-
-            #  visualize Forecast Data
-            st.subheader("Forecast Analysis " + pred_icon)
-            fig1 = plot_plotly(model, forecast)
-            st.plotly_chart(fig1)
-
-            # Plot Forecast Trends
-            st.subheader("Forecast Trend Analysis " + page_icon)
-            fig2 = model.plot_components(forecast)
-            st.write(fig2)
-        else:
-            st.warning("Please select a start date.")
-    else:
-        st.warning("Please select a stock for prediction.")
-
+# Tab for making stock prediction
 with tab3:
+    # Set years for prediction input
+    n_years = st.slider("Pick number of year(s) for prediction " + picker_icon, 1, 5) # Set date picker slider between 1 to 5 years
+    period = n_years * 365 # Convert selected years to days
+
+    # Stock Forecasting
+    df_train = data[['Date', 'Close']] # Select columns from raw data for prediction
+    df_train = df_train.rename(columns = {"Date": "ds", "Close": "y"}) # Convert columns for Prophet to understand
+
+    # Make prediction
+    model = Prophet() # Initialize model
+    model.fit(df_train) # Fit model on training data
+    future = model.make_future_dataframe(periods = period) # Make future prediction
+    forecast = model.predict(future)
+
+    # Show forecast data
+    st.subheader("Forecast data " + data_icon)
+    st.write(forecast.tail()) # Show last 5 days of forcasted data
+
+    # Visualize Forecast Data
+    st.subheader("Forecast Analysis " + pred_icon)
+    fig1 = plot_plotly(model, forecast) # Use plotly library to plot forecast data
+    st.plotly_chart(fig1) # Show plot
+
+    # Plot Forecast Trends
+    st.subheader("Forecast Trend Analysis " + page_icon)
+    fig2 = model.plot_components(forecast) # Retreive trend components from the model
+    st.write(fig2) # Plot trend components
+    
+with tab4:
+    # About Web App
     st.write("Stock Price Prediction System is a web app that predicts stock closing prices of 5 selected African stock exchange companies!")
