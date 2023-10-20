@@ -10,7 +10,7 @@ from prophet.plot import plot_plotly, plot_components_plotly # for creating inte
 from plotly import graph_objs as go # for creating interactive visualizations
 
 #-----------Web page setting-------------------#
-page_title = "Stock Price Prediction Web App"
+page_title = "Stock Price Prediction App"
 page_icon = "📈"
 viz_icon = "📊"
 pred_icon = "📉"
@@ -32,7 +32,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["Available Stocks", "Stock Analysis", "Get Pre
 
 # Available stocks tab
 with tab1:
-    st.subheader("These are the available stock exchange companies to choose for the prediction.")
+    st.subheader("Available stock exchange companies to choose for prediction.")
     st.write("1. AngloGold Ashanti Limited - AU")
     st.write("2. MTN Group Limited - MTNOY")
     st.write("3. Vodafone Group Public Limited Company - VOD")
